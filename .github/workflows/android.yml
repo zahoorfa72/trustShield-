@@ -30,6 +30,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
+      - name: Configure Supabase (optional for an unconfigured test build)
+        env:
+          TRUSTSHIELD_SUPABASE_URL: ${{ secrets.TRUSTSHIELD_SUPABASE_URL }}
+          TRUSTSHIELD_SUPABASE_ANON_KEY: ${{ secrets.TRUSTSHIELD_SUPABASE_ANON_KEY }}
+        run: |
+          {
+            echo "TRUSTSHIELD_SUPABASE_URL=$TRUSTSHIELD_SUPABASE_URL"
+            echo "TRUSTSHIELD_SUPABASE_ANON_KEY=$TRUSTSHIELD_SUPABASE_ANON_KEY"
+          } > android/local.properties
       - name: Build debug APK
         working-directory: android
         run: gradle assembleDebug

@@ -21,19 +21,25 @@ import androidx.compose.ui.unit.dp
 import com.trustshield.app.screening.TrustShieldNotificationListener
 
 class MainActivity : ComponentActivity() {
+    private var resumeTick by mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { TrustShieldScreen() }
+        setContent { TrustShieldScreen(resumeTick) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resumeTick++
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TrustShieldScreen() {
+private fun TrustShieldScreen(refreshTick: Int) {
     val context = LocalContext.current
     var showDisclosure by remember { mutableStateOf(false) }
-    var refresh by remember { mutableIntStateOf(0) }
-    val enabled = remember(refresh) { isNotificationAccessEnabled(context) }
+    val enabled = remember(refreshTick) { isNotificationAccessEnabled(context) }
     val supabaseConfigured = BuildConfig.SUPABASE_URL.startsWith("https://") &&
         !BuildConfig.SUPABASE_URL.contains("example.invalid") &&
         BuildConfig.SUPABASE_ANON_KEY != "not-configured"

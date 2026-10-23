@@ -3,8 +3,11 @@ package com.trustshield.app
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.text.TextUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -15,12 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
+import com.trustshield.app.screening.TrustShieldNotificationListener
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,38 +31,65 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun TrustShieldScreen() {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var message by remember { mutableStateOf("") }
-    var result by remember { mutableStateOf("Submit a suspicious message for an assessment.") }
-    var busy by remember { mutableStateOf(false) }
+    var showDisclosure by remember { mutableStateOf(false) }
+    var refresh by remember { mutableIntStateOf(0) }
+    val enabled = remember(refresh) { isNotificationAccessEnabled(context) }
+    val supabaseConfigured = BuildConfig.SUPABASE_URL.startsWith("https://") &&
+        !BuildConfig.SUPABASE_URL.contains("example.invalid") &&
+        BuildConfig.SUPABASE_ANON_KEY != "not-configured"
+
     MaterialTheme {
         Scaffold(topBar = { TopAppBar(title = { Text("TrustShield") }) }) { padding ->
-            Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("Stay alert. Check before you trust.", style = MaterialTheme.typography.headlineSmall)
-                Text("AI-assisted scam awareness. Results can be wrong. Never share passwords, PINs or one-time codes.")
+            Column(
+                Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text("Automatic scam protection", style = MaterialTheme.typography.headlineSmall)
+                Text("TrustShield checks supported message notifications in the background. No copying or pasting is required.")
+                Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Automatic message protection", style = MaterialTheme.typography.titleMedium)
+                    Text(if (enabled) "Notification access is enabled." else "Enable notification access to let TrustShield inspect supported message notifications.")
+                    Text("Supported apps currently include Google Messages, WhatsApp, Telegram, Messenger, Viber, and Gmail. Android may hide message previews, and not every message can be inspected.")
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                        if (!enabled) showDisclosure = true
+                        else context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }) { Text(if (enabled) "Manage notification access" else "Enable automatic detection") }
+                } }
                 Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Scan a message", style = MaterialTheme.typography.titleMedium)
-                    OutlinedTextField(value = message, onValueChange = { message = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Paste suspicious text") }, minLines = 4)
-                    Button(enabled = !busy && message.isNotBlank(), modifier = Modifier.fillMaxWidth(), onClick = {
-                        busy = true
-                        result = "Analyzing…"
-                        val submitted = message
-                        scope.launch { result = withContext(Dispatchers.IO) { analyzeText(submitted) }; busy = false }
-                    }) { Text(if (busy) "Analyzing…" else "Analyze with AI") }
+                    Text("AI service", style = MaterialTheme.typography.titleMedium)
+                    Text(if (supabaseConfigured) "Supabase configuration is present. The deployed Edge Function and OpenAI secret must also be configured." else "Supabase is not configured in this build yet.")
+                    Text("Only messages matching local suspicious-content signals are sent for AI review. Common one-time codes and password values are redacted first.")
                 } }
                 Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Caller protection", style = MaterialTheme.typography.titleMedium)
-                    Text("Optional Android call-screening role. The prototype allows calls by default and does not record calls.")
+                    Text("Android call-screening can be enabled separately. The current starter allows calls by default; live caller reputation is not yet connected.")
                     Button(modifier = Modifier.fillMaxWidth(), onClick = { requestCallScreeningRole(context) }) { Text("Enable call screening") }
                 } }
-                Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Analysis result", style = MaterialTheme.typography.titleMedium)
-                    Text(result)
-                } }
-                Text("Privacy: text you submit is sent to your configured backend. Do not submit highly sensitive information.", style = MaterialTheme.typography.bodySmall)
+                Text("AI assessments can be wrong. A low-risk result is not proof that a message or caller is safe.", style = MaterialTheme.typography.bodySmall)
             }
         }
     }
+
+    if (showDisclosure) {
+        AlertDialog(
+            onDismissRequest = { showDisclosure = false },
+            title = { Text("Enable automatic message checks?") },
+            text = { Text("Android notification access can expose notification content from apps you allow. TrustShield processes supported messaging notifications on your device and sends only messages matching local scam signals to your configured Supabase function for AI analysis. Common one-time codes and password values are redacted, but other personal information may still be present. You can disable access at any time in Android Settings.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDisclosure = false
+                    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                }) { Text("Continue to Settings") }
+            },
+            dismissButton = { TextButton(onClick = { showDisclosure = false }) { Text("Cancel") } }
+        )
+    }
+}
+
+private fun isNotificationAccessEnabled(context: Context): Boolean {
+    val enabledListeners = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
+    val expected = android.content.ComponentName(context, TrustShieldNotificationListener::class.java)
+    return enabledListeners.split(":").any { TextUtils.equals(it, expected.flattenToString()) }
 }
 
 private fun requestCallScreeningRole(context: Context) {
@@ -74,28 +99,4 @@ private fun requestCallScreeningRole(context: Context) {
             (context as? Activity)?.startActivityForResult(roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), 741)
         }
     }
-}
-
-private fun analyzeText(text: String): String {
-    val base = BuildConfig.API_BASE_URL.trimEnd('/')
-    if (base.contains("example.invalid")) return "Backend not configured. Deploy the API and set TRUSTSHIELD_API_BASE_URL in android/local.properties."
-    var connection: HttpURLConnection? = null
-    return try {
-        connection = URL(base + "/v1/analyze/text").openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.connectTimeout = 7000
-        connection.readTimeout = 12000
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-        connection.outputStream.use { it.write(JSONObject().put("text", text).toString().toByteArray(Charsets.UTF_8)) }
-        val status = connection.responseCode
-        val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-        val body = stream.bufferedReader().use { it.readText() }
-        if (status in 200..299) {
-            val json = JSONObject(body)
-            "Risk: " + json.optString("risk_level", "unknown").uppercase() + "\n\n" + json.optString("summary", "No summary returned.") + "\n\nReasons: " + json.optJSONArray("reasons").toString() + "\n\nAdvice: " + json.optString("recommended_action", "Use caution.")
-        } else "Analysis service returned an error. Please try again later."
-    } catch (_: Exception) {
-        "Could not reach the analysis service. Check your internet connection and backend URL. No conclusion was made."
-    } finally { connection?.disconnect() }
 }

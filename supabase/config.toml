@@ -1,0 +1,4 @@
+project_id = "trustshield"
+
+[functions.analyze-scam]
+verify_jwt = false

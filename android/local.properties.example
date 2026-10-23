@@ -1,0 +1,4 @@
+# Copy these values into android/local.properties and replace placeholders.
+# Never add the real local.properties file to Git.
+TRUSTSHIELD_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+TRUSTSHIELD_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY

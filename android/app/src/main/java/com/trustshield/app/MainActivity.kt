@@ -1,7 +1,9 @@
 package com.trustshield.app
 
+import android.Manifest
 import android.app.Activity
 import android.app.role.RoleManager
+import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -10,6 +12,8 @@ import android.provider.Settings
 import android.text.TextUtils
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +44,13 @@ private fun TrustShieldScreen(refreshTick: Int) {
     val context = LocalContext.current
     var showDisclosure by remember { mutableStateOf(false) }
     val enabled = remember(refreshTick) { isNotificationAccessEnabled(context) }
+    val alertsEnabled = remember(refreshTick) {
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+    }
+    val requestNotificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
     val supabaseConfigured = BuildConfig.SUPABASE_URL.startsWith("https://") &&
         !BuildConfig.SUPABASE_URL.contains("example.invalid") &&
         BuildConfig.SUPABASE_ANON_KEY != "not-configured"
@@ -60,6 +71,14 @@ private fun TrustShieldScreen(refreshTick: Int) {
                         if (!enabled) showDisclosure = true
                         else context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                     }) { Text(if (enabled) "Manage notification access" else "Enable automatic detection") }
+                    if (!alertsEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                        ) { Text("Allow TrustShield warning notifications") }
+                    } else {
+                        Text("Warning notifications are enabled.", style = MaterialTheme.typography.bodySmall)
+                    }
                 } }
                 Card { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("AI service", style = MaterialTheme.typography.titleMedium)

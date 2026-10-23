@@ -7,11 +7,12 @@ plugins {
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) localPropertiesFile.inputStream().use { localProperties.load(it) }
-val apiBaseUrl = localProperties.getProperty("TRUSTSHIELD_API_BASE_URL", "https://example.invalid")
+val supabaseUrl = localProperties.getProperty("TRUSTSHIELD_SUPABASE_URL", "https://example.invalid")
+val supabaseAnonKey = localProperties.getProperty("TRUSTSHIELD_SUPABASE_ANON_KEY", "not-configured")
 android {
     namespace = "com.trustshield.app"
     compileSdk = 36
-    defaultConfig { applicationId = "com.trustshield.app"; minSdk = 29; targetSdk = 35; versionCode = 1; versionName = "0.1.0"; buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"") }
+    defaultConfig { applicationId = "com.trustshield.app"; minSdk = 29; targetSdk = 35; versionCode = 1; versionName = "0.1.0"; buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\""); buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"") }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

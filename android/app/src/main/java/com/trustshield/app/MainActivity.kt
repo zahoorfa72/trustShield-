@@ -99,7 +99,7 @@ private fun TrustShieldScreen(refreshTick: Int) {
         AlertDialog(
             onDismissRequest = { showDisclosure = false },
             title = { Text("Enable automatic message checks?") },
-            text = { Text("Android notification access can expose notification content from apps you allow. TrustShield processes supported messaging notifications on your device and sends only messages matching local scam signals to your configured Supabase function for AI analysis. Common one-time codes and password values are redacted, but other personal information may still be present. You can disable access at any time in Android Settings.") },
+            text = { Text("Android notification access can expose notification content from apps you allow. TrustShield processes supported messaging notifications on your device and sends only messages matching local scam signals to your configured Supabase function for AI analysis. Common one-time codes and password values are redacted, but other personal information may still be present. You can disable access at any time in Android Settings. If Android displays “App was denied access”, close that warning, open TrustShield App info, tap the three-dot menu, choose “Allow restricted settings”, authenticate if asked, then return here and try again. Android controls this restriction; TrustShield cannot bypass it.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDisclosure = false

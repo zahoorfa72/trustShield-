@@ -22,7 +22,9 @@ TRUSTSHIELD_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 TRUSTSHIELD_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
 ```
 
-The public publishable/anon key is intended for client apps, but it does not protect a public Edge Function from abuse by itself. Before public production release, add authenticated access or robust rate limiting/quotas, monitoring, privacy and deletion flows, and a security review.
+The public publishable/anon key is intended for client apps. To make GitHub Actions build an APK configured for your Supabase project, add repository Actions secrets named `TRUSTSHIELD_SUPABASE_URL` and `TRUSTSHIELD_SUPABASE_ANON_KEY` under Settings → Secrets and variables → Actions. Never add the OpenAI key or Supabase service-role key to GitHub Actions secrets used by the Android build; those belong only in Supabase Edge Function secrets.
+
+The Edge Function applies a database-backed baseline quota (30 requests per IP per 60 seconds), but this is not a complete abuse-prevention system. Before public production release, add monitoring, privacy and deletion flows, and a security review.
 
 ## Caller protection status
 

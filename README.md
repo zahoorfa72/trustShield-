@@ -1,20 +1,37 @@
 # TrustShield
 
-Android-first scam-awareness MVP: native Kotlin app, AI-assisted user-submitted message analysis, and a safe call-screening foundation.
+TrustShield is an Android-first scam-awareness prototype with **automatic, opt-in message-notification checks** and Supabase Edge Functions for AI analysis. Users do not need to copy and paste message text.
 
-## Important limitations
-This is a development starter, not a production security product. Do not rely on it as the sole protection against scams. Unknown callers are not necessarily malicious. Basic URL checks are heuristics, not live reputation checks. Authentication, rate limiting, commercial URL threat intelligence, privacy/deletion flows, security review and broader testing are required before launch.
+## Automatic message checks
 
-The call-screening service defaults to allowing calls and does not record calls. It requires the user to grant Android's call-screening role. It does not read WhatsApp messages.
+- User explicitly enables Android notification access in Settings after seeing an in-app disclosure.
+- The listener currently checks notifications from Google Messages, WhatsApp, WhatsApp Business, Telegram, Facebook Messenger, Viber, and Gmail.
+- A local heuristic runs first. Only notifications matching suspicious-content indicators are sent to the Supabase Edge Function.
+- Common one-time codes and obvious password/PIN values are redacted before transmission, but redaction is not perfect and other personal information may remain.
+- TrustShield never logs message text. Users can revoke notification access in Android Settings.
+- Android may hide notification previews or not expose the full message, so this cannot inspect every message or scan old conversations.
 
-## Backend
-Use Python 3.11+. Install backend/requirements.txt, set OPENAI_API_KEY in a private environment (never commit it), then run uvicorn app.main:app --reload from backend/. Without an API key, heuristic analysis still works.
+## Supabase + OpenAI
 
-## Android
-Open android/ in Android Studio. Set TRUSTSHIELD_API_BASE_URL in android/local.properties. Do not commit local.properties or credentials. Use HTTPS for deployed servers.
+The Android app calls `/functions/v1/analyze-scam` on Supabase. The Edge Function calls OpenAI using a server-side `OPENAI_API_KEY`. Do not put the OpenAI key or Supabase service-role key in the app or repository.
 
-## CI
-GitHub Actions builds a debug APK on Android source changes. The debug APK is a test artifact, not a Play Store release.
+See [supabase/README.md](supabase/README.md) for setup and deployment. Configure these values in the untracked `android/local.properties` file:
 
-## Before public launch
-Add authentication, quotas, rate limits, a commercial URL reputation provider, privacy and deletion flows, evaluation data, signed release configuration, and testing on multiple Android versions.
+```properties
+TRUSTSHIELD_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+TRUSTSHIELD_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
+```
+
+The public publishable/anon key is intended for client apps, but it does not protect a public Edge Function from abuse by itself. Before public production release, add authenticated access or robust rate limiting/quotas, monitoring, privacy and deletion flows, and a security review.
+
+## Caller protection status
+
+Android call screening is only a starter. It currently allows calls by default and is **not yet connected to live caller-reputation data**. AI message checks do not establish the real identity of a phone-number owner.
+
+## Build
+
+Open `android/` in Android Studio or run the GitHub Actions workflow to build a debug APK. A debug APK is for testing, not a signed Play Store release.
+
+## Google Play and privacy
+
+Notification access is sensitive and must be clearly disclosed and user-enabled. Google Play eligibility and policy compliance must be reviewed before release. Never treat AI results as proof that a message is safe.

@@ -4,7 +4,9 @@ import json
 from typing import Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
 
+load_dotenv()
 app = FastAPI(title="TrustShield API", version="0.1.0")
 RiskLevel = Literal["low", "medium", "high", "unknown"]
 

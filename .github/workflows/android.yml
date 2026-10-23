@@ -1,16 +1,18 @@
-name: TrustShield CI
+name: TrustShield Android CI
 
 on:
   push:
     paths:
       - "android/**"
-      - "backend/**"
+      - "supabase/**"
       - ".github/workflows/**"
+      - "README.md"
   pull_request:
     paths:
       - "android/**"
-      - "backend/**"
+      - "supabase/**"
       - ".github/workflows/**"
+      - "README.md"
   workflow_dispatch:
 
 permissions:
@@ -37,18 +39,3 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-
-  backend-tests:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install test dependencies
-        run: pip install -r requirements-dev.txt
-      - name: Run tests
-        run: PYTHONPATH=. pytest -q
